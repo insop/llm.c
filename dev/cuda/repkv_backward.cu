@@ -62,11 +62,13 @@ __global__ void repkv_backward_kernel2(floatX* dinp, const floatX* dout,
     // we have a single tensor dout of shapae of (B, N 3 * NH * HD)
     // we want to reduce sum (for K and V) into  (B, N, (NH + 2*(NH/replicate_factor)) * HD)
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= B * N * 3 * NH * HD) { return;}
     int dinp_idx = idx; // keep backup
 
     int NKV = NH / replicate_factor;
-    int nkv_factor = (replicate_factor + 2);   // replicate_factor is for (replicate_factor * NKV == NQ), 2 for K V
+    int nkv_factor = (replicate_factor + 2);    // replicate_factor is for (replicate_factor * NKV == NH), 2 for K V
+                                                // use NKV size instead of NH size
+
+    if (idx >= B * N * nkv_factor * NKV * HD) { return;}
 
     // decode the dinp index
     int d = idx % HD;
@@ -82,22 +84,24 @@ __global__ void repkv_backward_kernel2(floatX* dinp, const floatX* dout,
     int nh_total = 3 * NH;
     // int nh_total = NH + 2 * (NH / replicate_factor);
 
-    if (c >= 0 && c < nkv_factor - 2) {
+    if (c >= 0 && c < replicate_factor) {
+    // if (c >= 0 && c < nkv_factor - 2) {
         dout_idx = b * N * nh_total * HD + n * nh_total * HD + c * NKV * HD + nkv * HD + d;
         dinp[dinp_idx] = __ldcs(&dout[dout_idx]);
+    } else if (c == replicate_factor + 1) {
     // } else if (c == nkv_factor - 2) {
-    //     // if (nkv % replicate_factor == 0) {
-    //         float reduced_sum = 0;
-    //         dout_idx = b * N * nh_total * HD + n * nh_total * HD + c * NKV * HD + nkv * HD + d;
-    //         for (int i = 0; i < replicate_factor; i++) {
-    //             reduced_sum += __ldcs(&dout[dout_idx+HD*i]);
-    //         }
-    //         dinp[dinp_idx] = reduced_sum;
-    //     // }
+        // if (nkv % replicate_factor == 0) {
+            float reduced_sum = 0.0f;
+            dout_idx = b * N * nh_total * HD + n * nh_total * HD + c * NKV * HD + nkv * HD + d;
+            for (int i = 0; i < replicate_factor; i++) {
+                reduced_sum += __ldcs(&dout[dout_idx+HD*i]);
+            }
+            dinp[dinp_idx] = reduced_sum;
+        // }
 
     } else {
         // if (nkv % replicate_factor == 0) {
-            float reduced_sum = 0;
+            float reduced_sum = 0.0f;
             dout_idx = b * N * nh_total * HD + n * nh_total * HD + c * NKV * HD + nkv * HD + d;
             for (int i = 0; i < replicate_factor; i++) {
                 reduced_sum += __ldcs(&dout[dout_idx+HD*i]);
@@ -238,8 +242,9 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
     int B = 1;
     int T = 2;
+    // int hd = 1; // head dim
     int hd = 2; // head dim
-    int qh = 4; // num query heads
+    int qh = 8; // num query heads
     int kh = 2; // num key heads
     int vh = 2; // num value heads
 #else
