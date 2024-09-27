@@ -185,5 +185,7 @@ int main(int argc, char **argv) {
     free(out);
     cudaCheck(cudaFree(d_inp));
     cudaCheck(cudaFree(d_out));
+
+    return 0;
 }
 
