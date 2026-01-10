@@ -34,6 +34,10 @@ from torch.distributed import init_process_group, destroy_process_group
 from torch.distributed.optim import ZeroRedundancyOptimizer
 import torch.distributed as dist
 
+# ISS
+# speedrun is to <= this val_loss. A val loss of <3.278 is good evidence that >95% of runs attain below 3.28
+SPEEDRUN_TARGET = 3.28
+
 # -----------------------------------------------------------------------------
 # PyTorch nn.Module definitions for the GPT-2 model
 
@@ -763,6 +767,10 @@ if __name__ == "__main__":
             if master_process and logfile is not None:
                 with open(logfile, "a") as f:
                     f.write("s:%d tel:%f\n" % (step, val_loss))
+
+            # if we hit the speedrun target, we're done
+            if val_loss <= SPEEDRUN_TARGET:
+                print0(f'Speedrun target achieved at step {step} with val_loss {val_loss:.4f}!')
 
         # once in a while perform model inference on the master process
         if (args.sample_every > 0 \

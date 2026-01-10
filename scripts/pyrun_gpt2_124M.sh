@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# ISS: updated compile to 0 to avoid CUDA fail
+
 # the same as scripts/run_gpt2_124M.sh but with PyTorch
 
 # if you wish to train on just a single GPU, simply skip the torchrun part, i.e.
@@ -16,7 +18,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt2.py \
     --sequence_length 1024 \
     --total_batch_size 524288 \
     --dtype bfloat16 \
-    --compile 1 \
+    --compile 0 \
     --tensorcores 1 \
     --flash 1 \
     --num_iterations 18865 \
