@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # ISS: updated compile to 0 to avoid CUDA fail
+#    --num_iterations 18865 \
 
 # the same as scripts/run_gpt2_124M.sh but with PyTorch
 
@@ -21,7 +22,7 @@ torchrun --standalone --nproc_per_node=8 train_gpt2.py \
     --compile 0 \
     --tensorcores 1 \
     --flash 1 \
-    --num_iterations 18865 \
+    --num_iterations 20 \
     --weight_decay 0.1 \
     --zero_stage 1 \
     --learning_rate 0.0006 \

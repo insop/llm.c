@@ -38,6 +38,8 @@ import torch.distributed as dist
 # speedrun is to <= this val_loss. A val loss of <3.278 is good evidence that >95% of runs attain below 3.28
 SPEEDRUN_TARGET = 3.28
 
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+
 # -----------------------------------------------------------------------------
 # PyTorch nn.Module definitions for the GPT-2 model
 
